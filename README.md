@@ -18,7 +18,7 @@ Der Salon fotografiert die Kundin, wählt ein Modell, und die Anwendung zeigt in
 Buchung mit persischem Kalender, serverseitige Preisberechnung, Adminbereich, Kundenverwaltung, Übergabeformular und automatisierte Beiträge auf Instagram und Telegram. Im realen Einsatz.
 
 ### Gold Intelligence – Entscheidungshilfe für den Goldmarkt
-[Live](https://kolbenarenji.com/gold) · [Quellcode](https://github.com/farhadjavanmardi-art/kolbenarenji)
+[Live](https://kolbenarenji.com/gold) · [Quellcode](https://github.com/farhadjavanmardi-art/gold)
 Wertet reale Marktdaten in festgelegten Schritten zu einer nachvollziehbaren Einschätzung aus; jede Zahl mit Quelle und Datum.
 
 ### LogicStyle Deutsch – Artikel und Grammatik
