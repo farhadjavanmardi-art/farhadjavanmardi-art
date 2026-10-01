@@ -25,6 +25,10 @@ Wertet reale Marktdaten in festgelegten Schritten zu einer nachvollziehbaren Ein
 [Live](https://logicstyle-salon.de/deutsch) · [Quellcode](https://github.com/farhadjavanmardi-art/logicstyle-deutsch)
 Übungs-App für Artikel und Grammatik A1–B2: 403 handgeprüfte Wörter aus dem Arbeitsalltag, Texterkennung per Kamera.
 
+### 5 Pollar – Unternehmensanalyse mit KI
+Noch keine Live-Version · [Quellcode](https://github.com/farhadjavanmardi-art/5p)
+Unternehmen geben einmal ihre Grunddaten ein; die App analysiert mit KI fünf Säulen (Machbarkeit, Businessplan, Marketing, Betriebshandbuch, Finanzplan) und erstellt einen Fortschrittsplan für 30, 60 und 90 Tage. Alle Zahlen berechnet ein eigenes Finanzmodul; Zahlen im KI-Text ohne Quelle werden automatisch markiert.
+
 ## Arbeitsweise
 **Ich prüfe nach, statt anzunehmen.** Ein Prüflauf über 99 Fälle bestätigte, dass die Anweisung an die Bild-KI korrekt war – trotzdem sahen die Bilder identisch aus. Ursache: zwei Anweisungen widersprachen sich. Gefunden, behoben, an erzeugten Bildern belegt.
 
