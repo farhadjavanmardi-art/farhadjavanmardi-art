@@ -34,6 +34,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { background: var(--bg); color: var(--fg); }
 body {
   margin: 0;
@@ -149,7 +150,7 @@ button, select, input { font: inherit; color: inherit; }
 .xf-row b { font-family: var(--f-display); font-size: 16px; }
 .xf-row b:first-child { color: var(--deck-a); }
 .xf-row b:last-child { color: var(--deck-b); }
-#xfader { flex: 1; min-width: 160px; accent-color: var(--fg); }
+#xfader { flex: 1; min-width: 0; width: 100%; accent-color: var(--fg); }
 select { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; }
 .masterrow { display: flex; align-items: center; gap: 14px; }
 
@@ -185,6 +186,60 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); }
 .help .close { margin-top: 14px; }
 .toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--line); padding: 8px 14px; border-radius: 6px; font-size: 13px; z-index: 20; max-width: calc(100vw - 32px); }
 
+/* ---------- compact: whole console fits one laptop screen ---------- */
+body { padding-block: 8px 16px; }
+.wrap { gap: 8px; }
+.brand h1 { font-size: 22px; }
+.label { font-size: 10px; }
+.btn { min-height: 30px; padding: 0 9px; font-size: 12px; border-radius: 5px; }
+.zoom { height: 54px; }
+.deck { padding: 8px 10px; gap: 6px; }
+.letter { font-size: 30px; }
+.trackinfo .title { font-size: 14px; }
+.bpmbox .big { font-size: 20px; }
+.times .el { font-size: 16px; }
+.times .rm { font-size: 12px; }
+.overview { height: 32px; }
+.deck-body { gap: 10px; }
+.controls { gap: 4px; }
+.row3, .row4, .row5 { gap: 4px; }
+.row3 { margin-top: 2px !important; }
+.big-btn { min-height: 40px; font-size: 14px; }
+.tempo { width: 62px; gap: 4px; }
+.tempo .val { font-size: 11px; }
+.vslider { height: 118px; width: 26px; }
+.tempo .btn { min-height: 22px; font-size: 10px; }
+.mixer { padding: 8px 10px; gap: 8px; }
+.chs { gap: 14px; }
+.ch { gap: 3px; }
+.ch > .label:first-child { font-size: 12px; }
+.kn { gap: 1px; }
+.knob { width: 32px; height: 32px; }
+.knob::after { top: 2px; width: 3px; height: 9px; transform-origin: 50% 12px; }
+.vu, .chfader { height: 104px; }
+.phones { gap: 5px; padding-top: 8px; }
+.ph-row { gap: 14px; }
+.xf { gap: 4px; }
+.xf-row b { font-size: 14px; }
+select { padding: 2px 6px; font-size: 12px; }
+.crate { padding: 8px 10px; gap: 6px; }
+.crate-head h2 { font-size: 15px; }
+td, th { padding: 4px 8px; }
+td .btn { min-height: 24px; }
+.midi { padding: 8px 10px; gap: 6px; }
+.controls { align-content: start; }
+/* mixer strip: knob A | shared label | knob B on each row */
+.chs { grid-template-columns: auto auto auto; gap: 10px; }
+.ch, .ch-labels { display: grid; gap: 4px; align-content: start; }
+.ch > .label:first-child, .ch-labels span:first-child { height: 16px; line-height: 16px; }
+.ch .kn .label { display: none; }
+.ch-labels span { height: 32px; line-height: 32px; text-align: center; font-family: var(--f-display); font-weight: 600; text-transform: uppercase; letter-spacing: .1em; font-size: 10px; color: var(--muted); }
+.ch .fader-row { margin-top: 4px; }
+.sel-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; width: 0; min-width: 100%; }
+.sel-row select { width: 100%; min-width: 0; }
+.zoom { height: 48px; }
+.mixer { min-width: 240px; }
+
 @media (max-width: 520px) {
   .deck-body { grid-template-columns: minmax(0, 1fr); }
   .tempo { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; }
@@ -194,7 +249,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); }
   .chs { gap: 10px; }
   .meter-h { width: 90px; }
 }
-.btn.pfl { min-height: 30px; font-size: 12px; padding: 0 10px; }
+.btn.pfl { min-height: 24px; font-size: 11px; padding: 0 8px; }
 .btn.pfl.on { background: var(--warn); border-color: var(--warn); color: var(--ink); }
 .btn.on-state { background: var(--warn); border-color: var(--warn); color: var(--ink); }
 .phones { display: grid; gap: 8px; justify-items: center; width: 100%; border-top: 1px solid var(--line); padding-top: 12px; }
@@ -251,27 +306,25 @@ body.learning [data-midi].picked { outline: 3px solid var(--warn); }
     <section class="mixer" aria-label="Mixer">
       <div class="chs">
         <div class="ch" data-deck="A" id="chA"></div>
+        <div class="ch-labels" aria-hidden="true"><span></span><span>Trim</span><span>Hi</span><span>Mid</span><span>Low</span><span>Filter</span></div>
         <div class="ch" data-deck="B" id="chB"></div>
       </div>
       <div class="phones">
-        <span class="label">Phones · cue</span>
         <div class="ph-row">
           <div class="kn"><div class="knob" id="cueMixKnob" tabindex="0" role="slider" aria-label="Headphone mix, cue to master" data-midi="cuemix"></div><span class="label">Cue ↔ Mst</span></div>
           <div class="kn"><div class="knob" id="phVolKnob" tabindex="0" role="slider" aria-label="Headphone level" data-midi="phvol"></div><span class="label">Level</span></div>
+          <div class="kn"><div class="knob" id="masterKnob" tabindex="0" role="slider" aria-label="Master volume" data-midi="master"></div><span class="label">Master</span></div>
         </div>
-        <select id="phOut" aria-label="Headphone output">
-          <option value="off">Phones off</option>
-          <option value="split">Split cable: L master · R cue</option>
-          <option value="scan">Use a second sound card…</option>
-        </select>
       </div>
       <div class="xf">
-        <span class="label">Crossfader</span>
         <div class="xf-row"><b>A</b><input type="range" id="xfader" min="0" max="1" step="0.001" value="0.5" aria-label="Crossfader" data-midi="xfader"><b>B</b></div>
-        <div class="masterrow">
-          <label class="label" for="xfCurve">Curve</label>
-          <select id="xfCurve"><option value="smooth">Smooth</option><option value="cut">Cut (scratch)</option></select>
-          <div class="kn"><div class="knob" id="masterKnob" tabindex="0" role="slider" aria-label="Master volume" data-midi="master"></div><span class="label">Master</span></div>
+        <div class="sel-row">
+          <select id="phOut" aria-label="Headphone output" title="Headphone output">
+            <option value="off">Phones off</option>
+            <option value="split">Split cable: L master · R cue</option>
+            <option value="scan">Use a second sound card…</option>
+          </select>
+          <select id="xfCurve" aria-label="Crossfader curve" title="Crossfader curve"><option value="smooth">Smooth curve</option><option value="cut">Cut (scratch)</option></select>
         </div>
       </div>
     </section>
