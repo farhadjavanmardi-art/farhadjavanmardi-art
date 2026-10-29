@@ -194,6 +194,22 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); }
   .chs { gap: 10px; }
   .meter-h { width: 90px; }
 }
+.btn.pfl { min-height: 30px; font-size: 12px; padding: 0 10px; }
+.btn.pfl.on { background: var(--warn); border-color: var(--warn); color: var(--ink); }
+.btn.on-state { background: var(--warn); border-color: var(--warn); color: var(--ink); }
+.phones { display: grid; gap: 8px; justify-items: center; width: 100%; border-top: 1px solid var(--line); padding-top: 12px; }
+.ph-row { display: flex; gap: 18px; align-items: center; }
+#phOut { max-width: 100%; }
+.midi { background: var(--panel); border-radius: 8px; padding: 12px; display: grid; gap: 10px; border-left: 3px solid var(--warn); }
+.midi-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.midi-head h2 { margin: 0 auto 0 0; font-family: var(--f-display); text-transform: uppercase; letter-spacing: .1em; font-size: 18px; }
+.midi p { margin: 0; color: var(--muted); font-size: 13px; max-width: 75ch; }
+.midi .devs { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--f-mono); font-size: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 2px 10px; }
+.chip.live { border-color: var(--ok); color: var(--ok); }
+body.learning [data-midi] { outline: 1px dashed var(--warn); outline-offset: 2px; }
+body.learning [data-midi].mapped { outline: 1px solid var(--ok); }
+body.learning [data-midi].picked { outline: 3px solid var(--warn); }
 @media (prefers-reduced-motion: reduce) { .btn.rec.on .dot { animation: none; } }
 </style>
 </head>
@@ -210,8 +226,20 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); }
       <div class="track"><i id="mR"></i></div>
     </div>
     <button class="btn rec" id="recBtn" type="button" aria-pressed="false"><span class="dot"></span><span id="recTxt">Record mix</span></button>
+    <button class="btn" id="midiBtn" type="button" aria-expanded="false">MIDI</button>
     <button class="btn" id="helpBtn" type="button">Help <bdi class="fa" lang="fa" dir="rtl">راهنما</bdi></button>
   </header>
+
+  <section class="midi" id="midiPanel" hidden aria-label="MIDI controller">
+    <div class="midi-head">
+      <h2>MIDI controller</h2>
+      <span class="hint" id="midiStatus">Not connected</span>
+      <button class="btn" id="learnBtn" type="button" aria-pressed="false">Learn</button>
+      <button class="btn" id="midiClear" type="button">Clear mappings</button>
+    </div>
+    <div class="devs" id="midiDevs"></div>
+    <p>Press <b>Learn</b>, click a control on screen (it gets a yellow frame), then move or press the knob, fader or button on your controller. Repeat for every control, then press Learn again to finish. Mappings are saved in this browser. Green frame = already mapped.</p>
+  </section>
 
   <section class="waves" aria-label="Scrolling waveforms">
     <canvas class="zoom" id="zoomA" aria-label="Deck A waveform, drag to scrub"></canvas>
@@ -225,13 +253,25 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); }
         <div class="ch" data-deck="A" id="chA"></div>
         <div class="ch" data-deck="B" id="chB"></div>
       </div>
+      <div class="phones">
+        <span class="label">Phones · cue</span>
+        <div class="ph-row">
+          <div class="kn"><div class="knob" id="cueMixKnob" tabindex="0" role="slider" aria-label="Headphone mix, cue to master" data-midi="cuemix"></div><span class="label">Cue ↔ Mst</span></div>
+          <div class="kn"><div class="knob" id="phVolKnob" tabindex="0" role="slider" aria-label="Headphone level" data-midi="phvol"></div><span class="label">Level</span></div>
+        </div>
+        <select id="phOut" aria-label="Headphone output">
+          <option value="off">Phones off</option>
+          <option value="split">Split cable: L master · R cue</option>
+          <option value="scan">Use a second sound card…</option>
+        </select>
+      </div>
       <div class="xf">
         <span class="label">Crossfader</span>
-        <div class="xf-row"><b>A</b><input type="range" id="xfader" min="0" max="1" step="0.001" value="0.5" aria-label="Crossfader"><b>B</b></div>
+        <div class="xf-row"><b>A</b><input type="range" id="xfader" min="0" max="1" step="0.001" value="0.5" aria-label="Crossfader" data-midi="xfader"><b>B</b></div>
         <div class="masterrow">
           <label class="label" for="xfCurve">Curve</label>
           <select id="xfCurve"><option value="smooth">Smooth</option><option value="cut">Cut (scratch)</option></select>
-          <div class="kn"><div class="knob" id="masterKnob" tabindex="0" role="slider" aria-label="Master volume"></div><span class="label">Master</span></div>
+          <div class="kn"><div class="knob" id="masterKnob" tabindex="0" role="slider" aria-label="Master volume" data-midi="master"></div><span class="label">Master</span></div>
         </div>
       </div>
     </section>
@@ -282,10 +322,23 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); }
       <li>کراس‌فیدر: <kbd>←</kbd> <kbd>→</kbd> · وسط: <kbd>↓</kbd></li>
       <li>میانبرها با کیبورد فارسی هم کار می‌کنند.</li>
     </ul>
+    <h3>هدفون (Cue)</h3>
+    <ul>
+      <li>دکمه‌ی <b>Cue</b> زیر فیدر هر کانال آن دک را به هدفون می‌فرستد، حتی وقتی فیدرش پایین است. این‌طوری آهنگ بعدی را قبل از پخش برای جمعیت آماده می‌کنید.</li>
+      <li>در بخش <b>Phones · cue</b> خروجی را انتخاب کنید: <b>Split cable</b> با یک کابل دوشاخه (Y) کار می‌کند: گوش چپ = خروجی اصلی، گوش راست = کیو. <b>Second sound card</b> هدفون را روی یک کارت صدای دوم (مثلاً هدفون USB یا بلوتوث) می‌گذارد.</li>
+      <li><b>Cue ↔ Mst</b> نسبت کیو و خروجی اصلی در هدفون، <b>Level</b> بلندی هدفون.</li>
+    </ul>
+    <h3>کنترلر MIDI</h3>
+    <ul>
+      <li>کنترلر را با USB وصل کنید و دکمه‌ی <b>MIDI</b> بالای صفحه را بزنید (Chrome یا Edge).</li>
+      <li><b>Learn</b> را بزنید، روی یک کنترل در صفحه کلیک کنید، بعد دکمه یا ولوم مربوط را روی کنترلر تکان دهید. برای همه‌ی کنترل‌ها تکرار کنید و در آخر <b>Finish learning</b>.</li>
+      <li>تنظیمات در همین مرورگر ذخیره می‌شود.</li>
+    </ul>
     <h3>یک میکس ساده</h3>
     <ul>
       <li>دک A را پخش کنید و کراس‌فیدر را سمت A بگذارید.</li>
       <li>آهنگ بعدی را روی B بیاورید، SYNC را روی B بزنید و بعد PLAY.</li>
+      <li>در هدفون با Cue دک B مطمئن شوید ضرب‌ها روی هم هستند.</li>
       <li>LOW دک B را کم کنید، کراس‌فیدر را آرام به وسط ببرید، سر یک فریز (هر ۱۶ یا ۳۲ ضرب) باس‌ها را عوض کنید: LOW دک A پایین، LOW دک B بالا.</li>
       <li>کراس‌فیدر را به B برسانید. تمام.</li>
     </ul>
@@ -324,7 +377,24 @@ const splitter = ctx.createChannelSplitter(2);
 const anL = ctx.createAnalyser(), anR = ctx.createAnalyser();
 anL.fftSize = anR.fftSize = 1024;
 masterGain.connect(limiter);
-limiter.connect(ctx.destination);
+// headphone (cue) bus: pre-fader taps from each deck, blended with the master
+const cueBus = ctx.createGain();
+const phCue = ctx.createGain(), phMain = ctx.createGain(), phVol = ctx.createGain();
+cueBus.connect(phCue); limiter.connect(phMain); phCue.connect(phVol); phMain.connect(phVol);
+// output stage: normal stereo, split cable (L master / R cue), or phones on a second device
+const mainOut = ctx.createGain();
+limiter.connect(mainOut);
+const merger = ctx.createChannelMerger(2);   // each merger input is downmixed to mono
+const phStream = ctx.createMediaStreamDestination ? ctx.createMediaStreamDestination() : null;
+let phMode = 'off', phAudio = null;
+function routeOutputs(mode) {
+  mainOut.disconnect(); phVol.disconnect(); merger.disconnect();
+  if (mode === 'split') { mainOut.connect(merger, 0, 0); phVol.connect(merger, 0, 1); merger.connect(ctx.destination); }
+  else { mainOut.connect(ctx.destination); if (mode === 'device' && phStream) phVol.connect(phStream); }
+  if (mode !== 'device' && phAudio) phAudio.pause();
+  phMode = mode;
+}
+routeOutputs('off');
 limiter.connect(splitter);
 splitter.connect(anL, 0); splitter.connect(anR, 1);
 const recDest = ctx.createMediaStreamDestination ? ctx.createMediaStreamDestination() : null;
@@ -442,11 +512,14 @@ function makeKnob(el, { min = -1, max = 1, value = 0, def = 0, step = 0.02, onCh
     else if (e.key === 'Home' || e.key === '0') { set(def); e.preventDefault(); e.stopPropagation(); }
   });
   set(value);
-  return { set, get: () => v, el };
+  const api = { set, get: () => v, el, min, max };
+  el._knob = api;
+  return api;
 }
 
 /* ---------- deck ---------- */
 const ICON_PLAY = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>';
+const ICON_PHONES = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-9 9v7a2 2 0 0 0 2 2h2v-8H5v-1a7 7 0 0 1 14 0v1h-2v8h2a2 2 0 0 0 2-2v-7a9 9 0 0 0-9-9z"/></svg>';
 const ICON_PAUSE = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
 
 function deckHTML(id) {
@@ -461,30 +534,31 @@ function deckHTML(id) {
   <div class="deck-body">
     <div class="controls">
       <div><span class="label">Hot cues</span></div>
-      <div class="row4">${[1, 2, 3, 4].map(i => `<button class="btn hc" type="button" style="--hc:var(--hc${i})" data-hc="${i - 1}" aria-label="Deck ${id} hot cue ${i}">${i}</button>`).join('')}</div>
+      <div class="row4">${[1, 2, 3, 4].map(i => `<button class="btn hc" type="button" style="--hc:var(--hc${i})" data-hc="${i - 1}" data-midi="hc${id}${i}" aria-label="Deck ${id} hot cue ${i}">${i}</button>`).join('')}</div>
       <div><span class="label">Loop · beats</span></div>
-      <div class="row5">${[['½', 0.5], ['1', 1], ['2', 2], ['4', 4], ['8', 8]].map(([t, b]) => `<button class="btn loop" type="button" data-loop="${b}" aria-label="Deck ${id} loop ${t} beats">${t}</button>`).join('')}</div>
+      <div class="row5">${[['½', 0.5], ['1', 1], ['2', 2], ['4', 4], ['8', 8]].map(([t, b]) => `<button class="btn loop" type="button" data-loop="${b}" data-midi="loop${id}-${b}" aria-label="Deck ${id} loop ${t} beats">${t}</button>`).join('')}</div>
       <div class="row3" style="margin-top:4px">
-        <button class="btn big-btn cue" type="button">Cue</button>
-        <button class="btn big-btn play" type="button" aria-label="Play deck ${id}">${ICON_PLAY}</button>
-        <button class="btn big-btn sync" type="button">Sync</button>
+        <button class="btn big-btn cue" type="button" data-midi="cue${id}">Cue</button>
+        <button class="btn big-btn play" type="button" data-midi="play${id}" aria-label="Play deck ${id}">${ICON_PLAY}</button>
+        <button class="btn big-btn sync" type="button" data-midi="sync${id}">Sync</button>
       </div>
     </div>
     <div class="tempo">
       <span class="label">Tempo</span>
       <span class="val">+0.00%</span>
-      <input class="vslider" type="range" min="-1" max="1" step="0.0005" value="0" id="tempo${id}" aria-label="Deck ${id} tempo">
+      <input class="vslider" type="range" min="-1" max="1" step="0.0005" value="0" id="tempo${id}" data-midi="tempo${id}" aria-label="Deck ${id} tempo">
       <button class="btn range" type="button" aria-label="Deck ${id} tempo range">±8%</button>
       <button class="btn reset" type="button">Reset</button>
-      <div class="nudge"><button class="btn nd" type="button" data-nudge="-1" aria-label="Deck ${id} nudge slower">◀</button><button class="btn nd" type="button" data-nudge="1" aria-label="Deck ${id} nudge faster">▶</button></div>
+      <div class="nudge"><button class="btn nd" type="button" data-nudge="-1" data-midi="nudge${id}-" aria-label="Deck ${id} nudge slower">◀</button><button class="btn nd" type="button" data-nudge="1" data-midi="nudge${id}+" aria-label="Deck ${id} nudge faster">▶</button></div>
     </div>
   </div>`;
 }
 
 function chHTML(id) {
-  const k = (key, label) => `<div class="kn"><div class="knob" tabindex="0" role="slider" data-k="${key}" aria-label="Deck ${id} ${label}"></div><span class="label">${label}</span></div>`;
+  const k = (key, label) => `<div class="kn"><div class="knob" tabindex="0" role="slider" data-k="${key}" data-midi="${key}${id}" aria-label="Deck ${id} ${label}"></div><span class="label">${label}</span></div>`;
   return `<span class="label">Ch ${id}</span>${k('trim', 'Trim')}${k('hi', 'Hi')}${k('mid', 'Mid')}${k('low', 'Low')}${k('filter', 'Filter')}
-    <div class="fader-row"><div class="vu"><i></i></div><input class="vslider chfader" type="range" min="0" max="1" step="0.001" value="0.85" id="fader${id}" aria-label="Deck ${id} volume"></div>`;
+    <div class="fader-row"><div class="vu"><i></i></div><input class="vslider chfader" type="range" min="0" max="1" step="0.001" value="0.85" id="fader${id}" data-midi="fader${id}" aria-label="Deck ${id} volume"></div>
+    <button class="btn pfl" type="button" aria-pressed="false" data-midi="pfl${id}" aria-label="Deck ${id} headphone cue">${ICON_PHONES} Cue</button>`;
 }
 
 class Deck {
@@ -511,6 +585,8 @@ class Deck {
     this.trim.connect(this.lo); this.lo.connect(this.mid); this.mid.connect(this.hi); this.hi.connect(this.lp);
     this.lp.connect(this.hp); this.hp.connect(this.fader); this.fader.connect(this.an); this.fader.connect(this.xf);
     this.xf.connect(masterGain);
+    this.pfl = ctx.createGain(); this.pfl.gain.value = 0; this.pflOn = false;
+    this.hp.connect(this.pfl); this.pfl.connect(cueBus);
     this.tbuf = new Float32Array(this.an.fftSize);
     this.wire();
   }
@@ -674,8 +750,9 @@ class Deck {
     });
     $$('.nd', el).forEach(b => {
       const dir = +b.dataset.nudge;
-      const on = e => { e.preventDefault(); b.setPointerCapture?.(e.pointerId); this.bend = dir * 4; this.applyRate(); };
+      const on = e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (err) { /* synthetic pointer */ } this.bend = dir * 4; this.applyRate(); };
       const off = () => { if (this.bend) { this.bend = 0; this.applyRate(); } };
+      b._hold = down => { this.bend = down ? dir * 4 : 0; this.applyRate(); };
       b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('lostpointercapture', off);
     });
 
@@ -716,6 +793,13 @@ class Deck {
     const fd = $('.chfader', this.ch);
     const setF = () => this.fader.gain.setTargetAtTime(Math.pow(+fd.value, 2), ctx.currentTime, 0.01);
     fd.addEventListener('input', setF); setF();
+    const pf = $('.pfl', this.ch);
+    pf.addEventListener('click', () => {
+      this.pflOn = !this.pflOn;
+      pf.classList.toggle('on', this.pflOn); pf.setAttribute('aria-pressed', String(this.pflOn));
+      this.pfl.gain.setTargetAtTime(this.pflOn ? 1 : 0, ctx.currentTime, 0.01);
+      if (this.pflOn && phMode === 'off') toast('Choose a headphone output under Phones · cue to hear the cue.');
+    });
 
     // drag and drop onto this deck
     for (const t of [el, this.zoom]) {
@@ -862,6 +946,128 @@ xf.addEventListener('dblclick', () => { xf.value = 0.5; applyXf(); });
 curveSel.addEventListener('change', applyXf);
 applyXf();
 makeKnob($('#masterKnob'), { min: 0, max: 1, value: 0.8, def: 0.8, devAt: 0.8, onChange: v => masterGain.gain.setTargetAtTime(Math.pow(v / 0.8, 2), ctx.currentTime, 0.01) });
+
+/* ---------- headphones ---------- */
+makeKnob($('#cueMixKnob'), { min: 0, max: 1, value: 0.25, def: 0.5, devAt: 0.5, onChange: v => {
+  phCue.gain.setTargetAtTime(Math.cos(v * Math.PI / 2), ctx.currentTime, 0.01);
+  phMain.gain.setTargetAtTime(Math.sin(v * Math.PI / 2), ctx.currentTime, 0.01);
+} });
+makeKnob($('#phVolKnob'), { min: 0, max: 1, value: 0.8, def: 0.8, devAt: 0.8, onChange: v => phVol.gain.setTargetAtTime(Math.pow(v / 0.8, 2), ctx.currentTime, 0.01) });
+const phSel = $('#phOut');
+let phPrev = 'off';
+async function scanOutputs() {
+  if (!phStream || !('setSinkId' in HTMLMediaElement.prototype)) { toast('This browser cannot send audio to a second device. Use Chrome or Edge, or the split cable mode.'); return false; }
+  try {
+    const md = navigator.mediaDevices;
+    let outs;
+    if (md.selectAudioOutput) { const d = await md.selectAudioOutput(); outs = [d]; }
+    else {
+      // device names are only visible after a one-time audio permission; the mic is released immediately
+      const st = await md.getUserMedia({ audio: true }); st.getTracks().forEach(t => t.stop());
+      outs = (await md.enumerateDevices()).filter(d => d.kind === 'audiooutput' && d.deviceId !== 'default' && d.deviceId !== 'communications');
+    }
+    $$('option[data-dev]', phSel).forEach(o => o.remove());
+    outs.forEach((d, i) => { const o = document.createElement('option'); o.value = 'dev:' + d.deviceId; o.dataset.dev = '1'; o.textContent = 'Phones → ' + (d.label || 'Output ' + (i + 1)); phSel.append(o); });
+    if (!outs.length) { toast('No second audio output was found.'); return false; }
+    toast(outs.length + ' output(s) found. Pick your headphones in the list.');
+    return true;
+  } catch (e) { toast('No access to audio devices here. Open the app file in Chrome or Edge, or use the split cable mode.'); return false; }
+}
+phSel.addEventListener('change', async () => {
+  const v = phSel.value;
+  if (v === 'scan') { phSel.value = phPrev; await scanOutputs(); return; }
+  if (v.startsWith('dev:')) {
+    try {
+      if (!phAudio) { phAudio = new Audio(); phAudio.srcObject = phStream.stream; }
+      await phAudio.setSinkId(v.slice(4));
+      routeOutputs('device'); resume(); await phAudio.play();
+      toast('Cue goes to ' + phSel.selectedOptions[0].textContent.replace('Phones → ', '') + '.');
+    } catch (e) { toast('Could not open that output.'); phSel.value = phPrev; routeOutputs(phPrev.startsWith('dev:') ? 'device' : phPrev); return; }
+  } else {
+    routeOutputs(v);
+    if (v === 'split') toast('Split mode: left channel = master (mono), right channel = your cue. Use a Y splitter cable.');
+  }
+  phPrev = v;
+});
+
+/* ---------- MIDI controller (learn mode) ---------- */
+const MIDI_KEY = 'javanDecks.midiMap';
+let midiMap = {};
+try { midiMap = JSON.parse(localStorage.getItem(MIDI_KEY) || '{}') || {}; } catch (e) { midiMap = {}; }
+const saveMidi = () => { try { localStorage.setItem(MIDI_KEY, JSON.stringify(midiMap)); } catch (e) { /* storage blocked */ } };
+let midiAccess = null, learning = false, picked = null;
+const ccLast = {};
+function markMapped() {
+  const ids = new Set(Object.values(midiMap));
+  $$('[data-midi]').forEach(el => el.classList.toggle('mapped', ids.has(el.dataset.midi)));
+  $('#midiClear').disabled = !ids.size;
+}
+function renderMidiDevs() {
+  const box = $('#midiDevs'); box.innerHTML = '';
+  const ins = midiAccess ? [...midiAccess.inputs.values()] : [];
+  ins.forEach(i => { const c = document.createElement('span'); c.className = 'chip' + (i.state === 'connected' ? ' live' : ''); c.textContent = i.name || 'MIDI input'; box.append(c); });
+  const n = Object.keys(midiMap).length;
+  $('#midiStatus').textContent = midiAccess ? (ins.length ? `${ins.length} device(s) · ${n} mapping(s)` : `No controller found. Plug it in. · ${n} mapping(s)`) : 'Not connected';
+  for (const i of ins) i.onmidimessage = onMidi;
+}
+function setLearning(on) {
+  learning = on; document.body.classList.toggle('learning', on);
+  $('#learnBtn').classList.toggle('on-state', on); $('#learnBtn').setAttribute('aria-pressed', String(on));
+  $('#learnBtn').textContent = on ? 'Finish learning' : 'Learn';
+  if (picked) { picked.classList.remove('picked'); picked = null; }
+  markMapped();
+}
+function onMidi(e) {
+  const [st, d1, d2 = 0] = e.data, type = st & 0xf0, ch = (st & 0x0f) + 1;
+  let kind, val, down;
+  if (type === 0x90 && d2 > 0) { kind = 'note'; val = d2 / 127; down = true; }
+  else if (type === 0x80 || type === 0x90) { kind = 'note'; val = 0; down = false; }
+  else if (type === 0xb0) { kind = 'cc'; val = d2 / 127; down = d2 >= 64; }
+  else return;
+  const key = `${kind}:${ch}:${d1}`;
+  if (learning) {
+    if (!picked || (kind === 'note' && !down)) return;
+    for (const k of Object.keys(midiMap)) if (midiMap[k] === picked.dataset.midi) delete midiMap[k];
+    midiMap[key] = picked.dataset.midi; saveMidi();
+    toast(`Mapped ${kind === 'cc' ? 'CC' : 'note'} ${d1} (ch ${ch}) to ${picked.getAttribute('aria-label') || picked.textContent.trim() || picked.dataset.midi}.`);
+    picked.classList.remove('picked'); picked = null; markMapped(); renderMidiDevs();
+    return;
+  }
+  const id = midiMap[key]; if (!id) return;
+  const el = document.querySelector(`[data-midi="${id}"]`); if (!el) return;
+  resume();
+  if (el._knob) { if (kind === 'cc') el._knob.set(el._knob.min + val * (el._knob.max - el._knob.min)); return; }
+  if (el.tagName === 'INPUT') {
+    if (kind !== 'cc') return;
+    el.value = +el.min + val * (+el.max - +el.min); el.dispatchEvent(new Event('input', { bubbles: true })); return;
+  }
+  if (el._hold) { el._hold(down); return; }
+  const was = ccLast[key]; ccLast[key] = down;
+  if (down && (kind === 'note' || !was)) el.click();
+}
+// in learn mode a click on a mappable control selects it instead of using it
+for (const ev of ['pointerdown', 'mousedown', 'click']) {
+  document.addEventListener(ev, e => {
+    if (!learning || !e.isTrusted) return;
+    const t = e.target.closest('[data-midi]'); if (!t) return;
+    e.preventDefault(); e.stopPropagation();
+    if (ev === 'pointerdown') { if (picked) picked.classList.remove('picked'); picked = t; t.classList.add('picked'); }
+  }, true);
+}
+$('#midiBtn').addEventListener('click', async () => {
+  const panel = $('#midiPanel'), open = panel.hidden;
+  panel.hidden = !open; $('#midiBtn').setAttribute('aria-expanded', String(open));
+  if (!open) { setLearning(false); return; }
+  markMapped(); renderMidiDevs();
+  if (midiAccess) return;
+  if (!navigator.requestMIDIAccess) { $('#midiStatus').textContent = 'This browser has no MIDI support. Use Chrome or Edge.'; return; }
+  try {
+    midiAccess = await navigator.requestMIDIAccess();
+    midiAccess.onstatechange = renderMidiDevs; renderMidiDevs();
+  } catch (e) { $('#midiStatus').textContent = 'MIDI access was blocked. Open the app file directly in Chrome or Edge and allow MIDI.'; }
+});
+$('#learnBtn').addEventListener('click', () => setLearning(!learning));
+$('#midiClear').addEventListener('click', () => { midiMap = {}; saveMidi(); markMapped(); renderMidiDevs(); toast('All MIDI mappings cleared.'); });
 
 /* ---------- crate ---------- */
 const crate = [];
